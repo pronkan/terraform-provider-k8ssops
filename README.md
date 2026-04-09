@@ -67,6 +67,25 @@ resource "k8ssops_secret" "registry" {
   output_path = "${path.module}/gitops/docker-registry.enc.yaml"
 }
 
+resource "k8ssops_secret" "license" {
+  metadata = {
+    name      = "product-license"
+    namespace = "default"
+  }
+  type = "Opaque"
+  file_data = {
+    "license.txt" = "${path.module}/license.txt" # Can be removed after bootstrap until next license renewal.
+  }
+  # output_path = "${path.module}/gitops/license.enc.yaml" # Optional and can be omitted in this case
+}
+
+resource "local_file" "flux_manifest" {
+  content  = templatefile("${path.module}/flux.yaml.tmpl", {
+    license_secret = k8ssops_secret.license.secret
+  })
+  filename = "${path.module}/gitops/license.decrypted.txt"
+}
+
 # Decrypt a single field during the same run for a downstream resource.
 data "k8ssops_decrypt" "registry_password" {
   encrypted_yaml = k8ssops_secret.registry.secret
@@ -78,6 +97,36 @@ data "k8ssops_secret" "registry" {
   path       = k8ssops_secret.registry.output_path
   depends_on = [k8ssops_secret.registry]
 }
+```
+
+Where:
+```yaml
+# flux.yaml.tmpl
+${license_secret}
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: flux-system
+  namespace: flux-system
+spec:
+  interval: 15m
+  timeout: 5m
+  chart:
+    spec:
+      chart: product
+      version: '1.0.*'
+      sourceRef:
+        kind: HelmRepository
+        name: product-charts
+        namespace:
+      interval: 5m
+  releaseName: product
+  targetNamespace: default
+  values:
+    license:
+      secretRef:
+        name: product-license
 ```
 
 ## Architecture
