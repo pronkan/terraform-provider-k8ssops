@@ -107,7 +107,7 @@ ${license_secret}
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
-  name: flux-system
+  name: product
   namespace: flux-system
 spec:
   interval: 15m
