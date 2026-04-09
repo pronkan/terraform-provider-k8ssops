@@ -197,6 +197,20 @@ terraform init
 
 **Prerequisites**: Go 1.25+, Terraform 1.5+, GNU Make.
 
+Add `~/.terraformrc` file in the home directory:
+```hcl
+provider_installation {
+  filesystem_mirror {
+    path    = "~/.terraform.d/plugins"
+    include = ["registry.terraform.io/pronkan/*"]
+  }
+  direct {
+    exclude = ["registry.terraform.io/pronkan/*"]
+  }
+}
+```
+
+Use Make:
 ```bash
 # Build the provider binary
 make build
@@ -205,11 +219,12 @@ make build
 make test
 
 # Build, install to ~/.terraform.d/plugins, and run terraform apply in test/
-make cycle
+make cycle TF_VAR_kms_alias=alias/eks/eksKmsKey TF_VAR_aws_profile=default TF_VAR_aws_region=us-east-1
 ```
 
 The `make cycle` target requires AWS credentials with `kms:GenerateDataKey` on the key referenced
-by `TF_VAR_kms_alias`.
+by `TF_VAR_kms_alias`, aws profile `TF_VAR_aws_profile`, and region `TF_VAR_aws_region` set in
+the environment.
 
 ## Documentation
 
